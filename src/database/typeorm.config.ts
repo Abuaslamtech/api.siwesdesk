@@ -1,0 +1,22 @@
+import { DataSourceOptions } from 'typeorm';
+import { User } from '../users/user.entity';
+import { Session } from '../sessions/session.entity';
+import { Student } from '../students/student.entity';
+import { Assignment } from '../assignments/assignment.entity';
+import { Score } from '../scores/score.entity';
+import { InitialSchema1711843200000 } from './migrations/1711843200000-InitialSchema';
+
+export function buildTypeOrmOptions(
+  databaseUrl: string,
+  nodeEnv = 'development',
+): DataSourceOptions {
+  return {
+    type: 'postgres',
+    url: databaseUrl,
+    ssl: { rejectUnauthorized: false },
+    entities: [User, Session, Student, Assignment, Score],
+    migrations: [InitialSchema1711843200000],
+    synchronize: nodeEnv === 'development',
+    logging: nodeEnv === 'development',
+  };
+}
