@@ -20,12 +20,6 @@ async function seed() {
       password: 'ChangeMe@123',
       role: Role.CORPER,
     },
-    {
-      name: 'SIWES Supervisor',
-      email: 'supervisor@alhikmah.edu.ng',
-      password: 'ChangeMe@123',
-      role: Role.SUPERVISOR,
-    },
   ];
 
   for (const user of seeds) {
