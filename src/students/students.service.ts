@@ -26,26 +26,27 @@ export class StudentsService {
 
   async upload(dto: UploadStudentsDto) {
     const session = await this.sessionsService.findActive();
-    const existingStudents = await this.repo.find({
-      where: { sessionId: session.id },
-      select: {
-        id: true,
-        matricNo: true,
-      },
-    });
-    const seen = new Set(existingStudents.map((student) => student.matricNo));
-    let uploaded = 0;
-    let skipped = 0;
+    return this.repo.manager.transaction(async (manager) => {
+      const studentRepo = manager.getRepository(Student);
+      const existingStudents = await studentRepo.find({
+        where: { sessionId: session.id },
+        select: {
+          matricNo: true,
+        },
+      });
+      const seen = new Set(existingStudents.map((student) => student.matricNo));
+      const inserts: Array<Partial<Student>> = [];
+      let skipped = 0;
 
-    for (const row of dto.students) {
-      const matricNo = row.matricNo.trim().toUpperCase();
-      if (seen.has(matricNo)) {
-        skipped += 1;
-        continue;
-      }
+      for (const row of dto.students) {
+        const matricNo = row.matricNo.trim().toUpperCase();
+        if (seen.has(matricNo)) {
+          skipped += 1;
+          continue;
+        }
 
-      await this.repo.save(
-        this.repo.create({
+        seen.add(matricNo);
+        inserts.push({
           sessionId: session.id,
           matricNo,
           surname: row.surname.trim(),
@@ -62,14 +63,16 @@ export class StudentsService {
           email: this.optional(row.email)?.toLowerCase() ?? null,
           phone: this.optional(row.phone),
           gender: this.optional(row.gender),
-        }),
-      );
+        });
+      }
 
-      seen.add(matricNo);
-      uploaded += 1;
-    }
+      const chunkSize = 250;
+      for (let index = 0; index < inserts.length; index += chunkSize) {
+        await studentRepo.insert(inserts.slice(index, index + chunkSize));
+      }
 
-    return { uploaded, skipped };
+      return { uploaded: inserts.length, skipped };
+    });
   }
 
   async findAll(filters: StudentFilters = {}) {
