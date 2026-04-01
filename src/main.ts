@@ -32,4 +32,7 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`api.siwesdesk running on port ${port}`);
 }
-bootstrap();
+bootstrap().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

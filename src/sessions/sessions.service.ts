@@ -37,7 +37,9 @@ export class SessionsService {
 
   async findAll() {
     const sessions = await this.repo.find({ order: { year: 'DESC' } });
-    return Promise.all(sessions.map((session) => this.decorateSession(session)));
+    return Promise.all(
+      sessions.map((session) => this.decorateSession(session)),
+    );
   }
 
   async findActive() {

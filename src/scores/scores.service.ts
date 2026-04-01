@@ -147,23 +147,33 @@ export class ScoresService {
       .orderBy('supervisor.name', 'ASC')
       .getRawMany();
 
-    const perSupervisor = perSupervisorRaw.map((row) => {
-      const total = Number(row.total);
-      const scored = Number(row.scored);
+    const perSupervisor = perSupervisorRaw.map(
+      (row: {
+        supervisorId: string;
+        name: string;
+        email: string;
+        role: string;
+        createdAt: Date;
+        total: string | number;
+        scored: string | number;
+      }) => {
+        const total = Number(row.total);
+        const scored = Number(row.scored);
 
-      return {
-        supervisor: {
-          id: row.supervisorId,
-          name: row.name,
-          email: row.email,
-          role: row.role,
-          createdAt: row.createdAt,
-        },
-        total,
-        scored,
-        pending: total - scored,
-      };
-    });
+        return {
+          supervisor: {
+            id: row.supervisorId,
+            name: row.name,
+            email: row.email,
+            role: row.role,
+            createdAt: row.createdAt,
+          },
+          total,
+          scored,
+          pending: total - scored,
+        };
+      },
+    );
 
     return {
       totalStudents,
@@ -179,7 +189,9 @@ export class ScoresService {
   }
 
   private async ensureAssignedStudent(studentId: string, supervisorId: string) {
-    const student = await this.studentRepo.findOne({ where: { id: studentId } });
+    const student = await this.studentRepo.findOne({
+      where: { id: studentId },
+    });
     if (!student) {
       throw new NotFoundException('Student not found');
     }

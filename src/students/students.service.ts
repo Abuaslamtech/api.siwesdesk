@@ -127,7 +127,9 @@ export class StudentsService {
 
     return students
       .map((student) => this.decorateStudent(student))
-      .filter((student) => !filters.status || student.status === filters.status);
+      .filter(
+        (student) => !filters.status || student.status === filters.status,
+      );
   }
 
   async findById(id: string) {
@@ -165,7 +167,7 @@ export class StudentsService {
 
   private async getDistinctValues(
     field: 'department' | 'faculty' | 'course' | 'state' | 'industry',
-  ) {
+  ): Promise<string[]> {
     const session = await this.sessionsService.findActive();
     const rows = await this.repo
       .createQueryBuilder('student')
@@ -176,7 +178,9 @@ export class StudentsService {
       .orderBy(`student.${field}`, 'ASC')
       .getRawMany();
 
-    return rows.map((row) => row[field]).filter(Boolean);
+    return rows
+      .map((row: Record<string, string>) => row[field])
+      .filter(Boolean);
   }
 
   private decorateStudent(student: Student) {
@@ -207,7 +211,10 @@ export class StudentsService {
     };
   }
 
-  private computeStatus(assignment: Student['assignment'], score?: ReturnType<StudentsService['decorateScore']>) {
+  private computeStatus(
+    assignment: Student['assignment'],
+    score?: ReturnType<StudentsService['decorateScore']>,
+  ) {
     if (!assignment) {
       return 'unassigned';
     }

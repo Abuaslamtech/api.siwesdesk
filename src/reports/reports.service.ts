@@ -51,6 +51,17 @@ export class ReportsService {
       { header: 'Status', key: 'status', width: 14 },
     ];
 
+    // Style the header row
+    const headerRow = sheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4B5563' }, // A nice dark gray
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    headerRow.height = 24;
+
     for (const student of students) {
       const total =
         (student.score?.orientation ?? 0) +
@@ -76,13 +87,17 @@ export class ReportsService {
         location: student.location ?? '—',
         supervisor: student.assignment?.supervisor?.name ?? 'Unassigned',
         orientation:
-          student.score?.orientation !== null ? student.score?.orientation : '—',
+          student.score?.orientation !== null
+            ? student.score?.orientation
+            : '—',
         supervisorScore:
           student.score?.supervisorScore !== null
             ? student.score?.supervisorScore
             : '—',
         industryScore:
-          student.score?.industryScore !== null ? student.score?.industryScore : '—',
+          student.score?.industryScore !== null
+            ? student.score?.industryScore
+            : '—',
         total: student.score ? total : '—',
         siewesFinal: student.score ? total / 2 : '—',
         status: !student.assignment
@@ -94,6 +109,29 @@ export class ReportsService {
               : 'Assigned',
       });
     }
+
+    // Apply borders and alternating row colors to all rows
+    sheet.eachRow((row, rowNumber) => {
+      row.eachCell((cell) => {
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' },
+        };
+        // Add alternating row colors (skip header)
+        if (rowNumber > 1) {
+          row.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: rowNumber % 2 === 0 ? 'FFF9FAFB' : 'FFFFFFFF' },
+          };
+        }
+      });
+      if (rowNumber > 1) {
+        row.alignment = { vertical: 'middle' };
+      }
+    });
 
     return Buffer.from(await workbook.xlsx.writeBuffer());
   }
@@ -145,9 +183,29 @@ export class ReportsService {
         ? ['Matric No', 'Surname', 'Other Names', 'SIWES Score /50', 'Status']
         : ['Matric No', 'Surname', 'Other Names', 'SIWES Score /50'];
 
-      sheet.addRow([`SIWES ${session.year} - ${department}`]);
+      sheet.columns = [
+        { width: 18 },
+        { width: 18 },
+        { width: 24 },
+        { width: 18 },
+        ...(includeIncomplete ? [{ width: 16 }] : []),
+      ];
+
+      const titleRow = sheet.addRow([`SIWES ${session.year} - ${department}`]);
+      titleRow.font = { bold: true, size: 14, color: { argb: 'FF111827' } };
+      titleRow.alignment = { horizontal: 'center', vertical: 'middle' };
+      titleRow.height = 30;
       sheet.mergeCells(1, 1, 1, headers.length);
-      sheet.addRow(headers);
+
+      const headerRow = sheet.addRow(headers);
+      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4B5563' },
+      };
+      headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+      headerRow.height = 24;
 
       for (const student of departmentStudents) {
         const total =
@@ -174,6 +232,27 @@ export class ReportsService {
             : baseRow,
         );
       }
+
+      sheet.eachRow((row, rowNumber) => {
+        row.eachCell((cell) => {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' },
+          };
+          if (rowNumber > 2) {
+            row.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: rowNumber % 2 === 0 ? 'FFF9FAFB' : 'FFFFFFFF' },
+            };
+          }
+        });
+        if (rowNumber > 2) {
+          row.alignment = { vertical: 'middle' };
+        }
+      });
     }
 
     return Buffer.from(await workbook.xlsx.writeBuffer());

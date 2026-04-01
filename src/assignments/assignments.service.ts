@@ -102,7 +102,9 @@ export class AssignmentsService {
       .getMany();
 
     return students.map((student) => {
-      const score = student.score ? this.decorateScore(student.score) : undefined;
+      const score = student.score
+        ? this.decorateScore(student.score)
+        : undefined;
 
       return {
         ...student,

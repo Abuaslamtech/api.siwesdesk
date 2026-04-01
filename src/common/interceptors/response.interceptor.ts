@@ -14,19 +14,28 @@ export interface ApiResponse<T> {
 }
 
 @Injectable()
-export class ResponseInterceptor<T>
-  implements NestInterceptor<T, ApiResponse<T>>
-{
+export class ResponseInterceptor<T> implements NestInterceptor<
+  T,
+  ApiResponse<T>
+> {
   intercept(
     _context: ExecutionContext,
     next: CallHandler,
   ): Observable<ApiResponse<T>> {
     return next.handle().pipe(
-      map((data) => ({
-        success: true,
-        data: data?.data ?? data,
-        message: data?.message,
-      })),
+      map((data: unknown) => {
+        const hasData = data && typeof data === 'object' && 'data' in data;
+        const hasMessage =
+          data && typeof data === 'object' && 'message' in data;
+
+        return {
+          success: true,
+          data: (hasData ? (data as { data: T }).data : data) as T,
+          message: hasMessage
+            ? (data as { message: string }).message
+            : undefined,
+        };
+      }),
     );
   }
 }

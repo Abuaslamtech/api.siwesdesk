@@ -20,6 +20,12 @@ async function seed() {
       password: 'ChangeMe@123',
       role: Role.CORPER,
     },
+    {
+      name: 'Administrative Secretary',
+      email: 'adminsecretary@alhikmah.edu.ng',
+      password: 'ChangeMe@123',
+      role: Role.CORPER,
+    },
   ];
 
   for (const user of seeds) {
@@ -34,4 +40,7 @@ async function seed() {
   await app.close();
 }
 
-seed();
+seed().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
