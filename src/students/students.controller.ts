@@ -33,6 +33,7 @@ export class StudentsController {
     @Query('department') department?: string,
     @Query('course') course?: string,
     @Query('state') state?: string,
+    @Query('industry') industry?: string,
     @Query('status') status?: string,
     @Query('search') search?: string,
   ) {
@@ -42,6 +43,7 @@ export class StudentsController {
       department,
       course,
       state,
+      industry,
       status,
       search,
     });
@@ -69,6 +71,12 @@ export class StudentsController {
   @Get('states')
   getStates() {
     return this.studentsService.getStates();
+  }
+
+  @Roles(Role.DIRECTOR, Role.CORPER)
+  @Get('industries')
+  getIndustries() {
+    return this.studentsService.getIndustries();
   }
 
   @Roles(Role.DIRECTOR, Role.CORPER, Role.SUPERVISOR)

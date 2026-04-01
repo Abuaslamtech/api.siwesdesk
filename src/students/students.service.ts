@@ -12,6 +12,7 @@ type StudentFilters = {
   department?: string;
   course?: string;
   state?: string;
+  industry?: string;
   status?: string;
   search?: string;
 };
@@ -77,7 +78,7 @@ export class StudentsService {
 
   async findAll(filters: StudentFilters = {}) {
     const sessionId =
-      filters.sessionId ?? (await this.sessionsService.findActive()).id;
+      filters.sessionId?.trim() || (await this.sessionsService.findActive()).id;
 
     const qb = this.repo
       .createQueryBuilder('student')
@@ -102,6 +103,12 @@ export class StudentsService {
 
     if (filters.state) {
       qb.andWhere('student.state = :state', { state: filters.state });
+    }
+
+    if (filters.industry) {
+      qb.andWhere('student.industry = :industry', {
+        industry: filters.industry,
+      });
     }
 
     if (filters.search) {
@@ -152,8 +159,12 @@ export class StudentsService {
     return this.getDistinctValues('state');
   }
 
+  async getIndustries() {
+    return this.getDistinctValues('industry');
+  }
+
   private async getDistinctValues(
-    field: 'department' | 'faculty' | 'course' | 'state',
+    field: 'department' | 'faculty' | 'course' | 'state' | 'industry',
   ) {
     const session = await this.sessionsService.findActive();
     const rows = await this.repo
