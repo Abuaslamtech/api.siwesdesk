@@ -72,6 +72,9 @@ export class Student {
   @Column({ type: 'varchar', nullable: true })
   gender: string | null;
 
+  @Column({ type: 'text', nullable: true })
+  address: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -56,4 +56,8 @@ export class StudentUploadRowDto {
   @IsOptional()
   @IsString()
   gender?: string;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
 }

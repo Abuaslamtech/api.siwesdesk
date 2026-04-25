@@ -11,6 +11,7 @@ import { Student } from '../students/student.entity';
 import { Score } from './score.entity';
 import { SaveDraftScoreDto } from './dto/save-draft-score.dto';
 import { SubmitScoreDto } from './dto/submit-score.dto';
+import { BulkSubmitScoreDto } from './dto/bulk-submit-score.dto';
 
 @Injectable()
 export class ScoresService {
@@ -43,6 +44,46 @@ export class ScoresService {
 
     const saved = await this.scoreRepo.save(score);
     return this.withComputed(saved);
+  }
+
+  async bulkSubmit(dto: BulkSubmitScoreDto, supervisorId: string) {
+    const results = await Promise.allSettled(
+      dto.entries.map(async (entry) => {
+        await this.ensureAssignedStudent(entry.studentId, supervisorId);
+
+        let score = await this.scoreRepo.findOne({
+          where: { studentId: entry.studentId },
+        });
+        if (!score) {
+          score = this.scoreRepo.create({ studentId: entry.studentId });
+        }
+
+        score.supervisorScore = entry.supervisorScore;
+        score.industryScore = entry.industryScore;
+        score.enteredById = supervisorId;
+        score.isDraft = false;
+
+        const saved = await this.scoreRepo.save(score);
+        return { studentId: entry.studentId, status: 'ok' as const, score: this.withComputed(saved) };
+      }),
+    );
+
+    const summary = results.map((result, i) => {
+      if (result.status === 'fulfilled') {
+        return result.value;
+      }
+      const err = result.reason as Error;
+      return {
+        studentId: dto.entries[i].studentId,
+        status: 'error' as const,
+        message: err?.message ?? 'Unknown error',
+      };
+    });
+
+    const succeeded = summary.filter((r) => r.status === 'ok').length;
+    const failed = summary.filter((r) => r.status === 'error').length;
+
+    return { succeeded, failed, results: summary };
   }
 
   async saveDraft(

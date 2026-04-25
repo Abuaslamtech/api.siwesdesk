@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SessionsService } from '../sessions/sessions.service';
@@ -64,6 +68,7 @@ export class StudentsService {
           email: this.optional(row.email)?.toLowerCase() ?? null,
           phone: this.optional(row.phone),
           gender: this.optional(row.gender),
+          address: this.optional(row.address),
         });
       }
 
@@ -143,6 +148,82 @@ export class StudentsService {
     }
 
     return this.decorateStudent(student);
+  }
+
+  /**
+   * Public lookup — no authentication required.
+   * Returns a sanitised result only when the score is fully finalised.
+   */
+  async findByMatricNo(matricNo: string) {
+    if (!matricNo?.trim()) {
+      throw new BadRequestException('Matric number is required');
+    }
+
+    const normalised = matricNo.trim().toUpperCase();
+    const session = await this.sessionsService.findActive();
+
+    const student = await this.repo.findOne({
+      where: { matricNo: normalised, sessionId: session.id },
+      relations: ['score'],
+    });
+
+    if (!student) {
+      throw new NotFoundException('No student found with that matric number');
+    }
+
+    const score = student.score;
+    const isComplete =
+      score &&
+      !score.isDraft &&
+      score.orientation !== null &&
+      score.supervisorScore !== null &&
+      score.industryScore !== null;
+
+    if (!isComplete) {
+      // Student exists but results are not yet published
+      return {
+        found: true,
+        available: false,
+        message: 'Your SIWES results have not been published yet.',
+        student: {
+          name: student.name,
+          matricNo: student.matricNo,
+          department: student.department,
+          faculty: student.faculty,
+          level: student.level,
+        },
+      };
+    }
+
+    const orientation = score.orientation ?? 0;
+    const supervisorScore = score.supervisorScore ?? 0;
+    const industryScore = score.industryScore ?? 0;
+    const total = orientation + supervisorScore + industryScore;
+    const siewesFinal = total / 2;
+
+    return {
+      found: true,
+      available: true,
+      student: {
+        name: student.name,
+        matricNo: student.matricNo,
+        department: student.department,
+        faculty: student.faculty,
+        course: student.course,
+        level: student.level,
+        industry: student.industry,
+        location: student.location,
+        state: student.state,
+      },
+      result: {
+        orientation,
+        supervisorScore,
+        industryScore,
+        total,
+        siewesFinal,
+        submittedAt: score.submittedAt,
+      },
+    };
   }
 
   async getDepartments() {

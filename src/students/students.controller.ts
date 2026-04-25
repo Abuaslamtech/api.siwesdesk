@@ -79,6 +79,14 @@ export class StudentsController {
     return this.studentsService.getIndustries();
   }
 
+  // ── Public endpoint — no authentication required ─────────────────────────
+  // Must be declared BEFORE @Get(':id') so NestJS does not treat
+  // the literal string "result" as an :id parameter.
+  @Get('result')
+  lookupResult(@Query('matricNo') matricNo: string) {
+    return this.studentsService.findByMatricNo(matricNo);
+  }
+
   @Roles(Role.DIRECTOR, Role.CORPER, Role.SUPERVISOR)
   @Get(':id')
   findOne(@Param('id') id: string) {

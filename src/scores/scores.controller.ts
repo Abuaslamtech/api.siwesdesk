@@ -16,6 +16,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { ScoresService } from './scores.service';
 import { SaveDraftScoreDto } from './dto/save-draft-score.dto';
 import { SubmitScoreDto } from './dto/submit-score.dto';
+import { BulkSubmitScoreDto } from './dto/bulk-submit-score.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('scores')
@@ -26,6 +27,15 @@ export class ScoresController {
   @Get('progress/stats')
   getProgress(@Query('sessionId') sessionId?: string) {
     return this.scoresService.getProgressStats(sessionId);
+  }
+
+  @Roles(Role.SUPERVISOR)
+  @Post('bulk')
+  bulkSubmit(
+    @Body() dto: BulkSubmitScoreDto,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.scoresService.bulkSubmit(dto, user.id);
   }
 
   @Roles(Role.SUPERVISOR)
