@@ -38,6 +38,8 @@ export class ScoresController {
     return this.scoresService.bulkSubmit(dto, user.id);
   }
 
+
+
   @Roles(Role.SUPERVISOR)
   @Post(':studentId')
   submitFinal(

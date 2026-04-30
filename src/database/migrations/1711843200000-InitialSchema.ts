@@ -55,7 +55,6 @@ export class InitialSchema1711843200000 implements MigrationInterface {
         "email" character varying,
         "phone" character varying,
         "gender" character varying,
-        "createdAt" TIMESTAMP NOT NULL DEFAULT now(),
         CONSTRAINT "PK_students_id" PRIMARY KEY ("id"),
         CONSTRAINT "UQ_students_matric_session" UNIQUE ("matricNo", "sessionId"),
         CONSTRAINT "FK_students_session" FOREIGN KEY ("sessionId") REFERENCES "sessions"("id") ON DELETE CASCADE
