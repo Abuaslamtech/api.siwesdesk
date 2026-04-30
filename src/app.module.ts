@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { SessionsModule } from './sessions/sessions.module';
@@ -24,10 +26,15 @@ import { Score } from './scores/score.entity';
       useFactory: (config: ConfigService) => {
         const nodeEnv = config.get<string>('NODE_ENV');
 
+        // Route all DB connections over WebSocket (port 443) instead of raw TCP (port 5432)
+        // Fixes ECONNRESET/ETIMEDOUT errors on networks that block port 5432
+        neonConfig.webSocketConstructor = ws;
+
         return {
           type: 'postgres' as const,
           url: config.getOrThrow<string>('DATABASE_URL'),
           ssl: { rejectUnauthorized: false },
+          driver: require('@neondatabase/serverless'),
           entities: [User, Session, Student, Assignment, Score],
           synchronize: nodeEnv === 'development',
           migrationsRun: false,

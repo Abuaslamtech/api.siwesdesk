@@ -4,7 +4,6 @@ import { Session } from '../sessions/session.entity';
 import { Student } from '../students/student.entity';
 import { Assignment } from '../assignments/assignment.entity';
 import { Score } from '../scores/score.entity';
-import { InitialSchema1711843200000 } from './migrations/1711843200000-InitialSchema';
 
 export function buildTypeOrmOptions(
   databaseUrl: string,
@@ -15,7 +14,7 @@ export function buildTypeOrmOptions(
     url: databaseUrl,
     ssl: { rejectUnauthorized: false },
     entities: [User, Session, Student, Assignment, Score],
-    migrations: [InitialSchema1711843200000],
+    migrations: [__dirname + '/migrations/*{.ts,.js}'],
     synchronize: nodeEnv === 'development',
     logging: nodeEnv === 'development',
   };
