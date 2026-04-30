@@ -11,6 +11,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { Public } from '../common/decorators/public.decorator';
 import { UploadStudentsDto } from './dto/upload-students.dto';
 import { StudentsService } from './students.service';
 
@@ -82,6 +83,7 @@ export class StudentsController {
   // ── Public endpoint — no authentication required ─────────────────────────
   // Must be declared BEFORE @Get(':id') so NestJS does not treat
   // the literal string "result" as an :id parameter.
+  @Public()
   @Get('result')
   lookupResult(@Query('matricNo') matricNo: string) {
     return this.studentsService.findByMatricNo(matricNo);

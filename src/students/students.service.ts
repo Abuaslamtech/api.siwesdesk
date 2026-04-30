@@ -160,11 +160,11 @@ export class StudentsService {
     }
 
     const normalised = matricNo.trim().toUpperCase();
-    const session = await this.sessionsService.findActive();
 
     const student = await this.repo.findOne({
-      where: { matricNo: normalised, sessionId: session.id },
-      relations: ['score'],
+      where: { matricNo: normalised },
+      relations: ['score', 'session'],
+      order: { session: { year: 'DESC' } },
     });
 
     if (!student) {
