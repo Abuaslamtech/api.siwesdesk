@@ -13,6 +13,122 @@ export class ReportsService {
     private readonly sessionsService: SessionsService,
   ) {}
 
+  /**
+   * Applies consistent, executive-level styling to a worksheet:
+   * - Crisp Segoe UI typography
+   * - Modern Dark Slate header (#1E293B) with subtle slate borders
+   * - Freeze pane on header row
+   * - AutoFilter across all columns
+   * - Alternating zebra rows (Slate-50 / White)
+   * - Soft Slate borders (#E2E8F0)
+   * - Centered alignment for codes, dates, numbers, and status badges
+   */
+  private applySheetStyling(
+    sheet: ExcelJS.Worksheet,
+    options: {
+      headerRowIndex?: number;
+      headerBgColor?: string;
+      freezeRow?: number;
+      centerColumnKeys?: string[];
+      centerColIndices?: number[];
+    } = {},
+  ) {
+    const headerRowIndex = options.headerRowIndex ?? 1;
+    const headerBgColor = options.headerBgColor ?? 'FF1E293B'; // Executive Slate-800
+    const freezeRow = options.freezeRow ?? headerRowIndex;
+    const centerKeys = new Set(options.centerColumnKeys ?? []);
+    const totalCols =
+      sheet.columns?.length || sheet.getRow(headerRowIndex).cellCount || 1;
+
+    // 1. Freeze pane with gridlines visible
+    sheet.views = [
+      {
+        state: 'frozen',
+        ySplit: freezeRow,
+        showGridLines: true,
+      },
+    ];
+
+    // 2. Enable AutoFilter on header row
+    if (totalCols > 0) {
+      sheet.autoFilter = {
+        from: { row: headerRowIndex, column: 1 },
+        to: { row: headerRowIndex, column: totalCols },
+      };
+    }
+
+    // 3. Style Header Row
+    const headerRow = sheet.getRow(headerRowIndex);
+    headerRow.height = 28;
+    for (let c = 1; c <= totalCols; c++) {
+      const cell = headerRow.getCell(c);
+      cell.font = {
+        name: 'Segoe UI',
+        size: 10,
+        bold: true,
+        color: { argb: 'FFFFFFFF' },
+      };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: headerBgColor },
+      };
+      cell.alignment = {
+        vertical: 'middle',
+        horizontal: 'center',
+        wrapText: false,
+      };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FF334155' } },
+        bottom: { style: 'medium', color: { argb: 'FF0F172A' } },
+        left: { style: 'thin', color: { argb: 'FF334155' } },
+        right: { style: 'thin', color: { argb: 'FF334155' } },
+      };
+    }
+
+    // Identify which column indices should be centered
+    const centeredIndices = new Set<number>(options.centerColIndices ?? []);
+    if (sheet.columns) {
+      sheet.columns.forEach((col, idx) => {
+        if (col.key && centerKeys.has(col.key)) {
+          centeredIndices.add(idx + 1);
+        }
+      });
+    }
+
+    // 4. Style Data Rows
+    sheet.eachRow((row, rowNumber) => {
+      if (rowNumber <= headerRowIndex) return;
+      row.height = 22;
+      const isEven = (rowNumber - headerRowIndex) % 2 === 0;
+      const rowBg = isEven ? 'FFF8FAFC' : 'FFFFFFFF'; // Slate-50 alternating with White
+
+      for (let c = 1; c <= totalCols; c++) {
+        const cell = row.getCell(c);
+        cell.font = {
+          name: 'Segoe UI',
+          size: 9.5,
+          color: { argb: 'FF0F172A' },
+        };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: rowBg },
+        };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        };
+        cell.alignment = {
+          vertical: 'middle',
+          horizontal: centeredIndices.has(c) ? 'center' : 'left',
+        };
+      }
+    });
+  }
+
   async generateInternalReport(sessionId?: string) {
     const resolvedSessionId =
       sessionId ?? (await this.sessionsService.findActive()).id;
@@ -32,45 +148,33 @@ export class ReportsService {
     const sheet = workbook.addWorksheet(`SIWES ${session.year} Internal`);
 
     sheet.columns = [
-      { header: 'Matric No', key: 'matricNo', width: 18 },
-      { header: 'Surname', key: 'surname', width: 18 },
-      { header: 'Other Names', key: 'otherNames', width: 24 },
+      { header: 'Matric No', key: 'matricNo', width: 20 },
+      { header: 'Student Name', key: 'name', width: 30 },
       { header: 'Department', key: 'department', width: 24 },
-      { header: 'Course', key: 'course', width: 22 },
-      { header: 'Level', key: 'level', width: 10 },
-      { header: 'Phone', key: 'phone', width: 16 },
-      { header: 'WhatsApp', key: 'whatsappNumber', width: 16 },
-      { header: 'Email', key: 'email', width: 26 },
+      { header: 'Course', key: 'course', width: 24 },
+      { header: 'Level', key: 'level', width: 12 },
+      { header: 'Phone', key: 'phone', width: 18 },
+      { header: 'WhatsApp', key: 'whatsappNumber', width: 18 },
+      { header: 'Email', key: 'email', width: 28 },
       { header: 'State', key: 'state', width: 16 },
-      { header: 'LGA / Area', key: 'lga', width: 18 },
-      { header: 'Industry Placement', key: 'industry', width: 30 },
-      { header: 'Placement Address', key: 'address', width: 30 },
-      { header: 'Duration', key: 'siwesDuration', width: 16 },
-      { header: 'Industry Supervisor', key: 'industrySupervisorName', width: 26 },
-      { header: 'Industry Sup. Phone', key: 'industrySupervisorPhone', width: 20 },
-      { header: 'Bank Name', key: 'bankName', width: 20 },
-      { header: 'Account Name', key: 'accountName', width: 24 },
-      { header: 'Account Number', key: 'accountNumber', width: 18 },
+      { header: 'LGA / Area', key: 'lga', width: 22 },
+      { header: 'Industry Placement', key: 'industry', width: 32 },
+      { header: 'Placement Address', key: 'address', width: 34 },
+      { header: 'Duration', key: 'siwesDuration', width: 18 },
+      { header: 'Industry Supervisor', key: 'industrySupervisorName', width: 28 },
+      { header: 'Industry Sup. Phone', key: 'industrySupervisorPhone', width: 22 },
+      { header: 'Bank Name', key: 'bankName', width: 22 },
+      { header: 'Account Name', key: 'accountName', width: 26 },
+      { header: 'Account Number', key: 'accountNumber', width: 20 },
       { header: 'Sort Code', key: 'sortCode', width: 14 },
-      { header: 'Institutional Supervisor', key: 'supervisor', width: 26 },
-      { header: 'Orientation /10', key: 'orientation', width: 16 },
-      { header: 'Supervisor /40', key: 'supervisorScore', width: 16 },
-      { header: 'Industry /50', key: 'industryScore', width: 14 },
-      { header: 'Total /100', key: 'total', width: 12 },
-      { header: 'SIWES Score /50', key: 'siewesFinal', width: 16 },
-      { header: 'Status', key: 'status', width: 14 },
+      { header: 'Institutional Supervisor', key: 'supervisor', width: 28 },
+      { header: 'Orientation /10', key: 'orientation', width: 18 },
+      { header: 'Supervisor /40', key: 'supervisorScore', width: 18 },
+      { header: 'Industry /50', key: 'industryScore', width: 16 },
+      { header: 'Total /100', key: 'total', width: 14 },
+      { header: 'SIWES Score /50', key: 'siewesFinal', width: 18 },
+      { header: 'Status', key: 'status', width: 16 },
     ];
-
-    // Style the header row
-    const headerRow = sheet.getRow(1);
-    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    headerRow.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF4B5563' }, // A nice dark gray
-    };
-    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-    headerRow.height = 24;
 
     for (const student of students) {
       const total =
@@ -86,8 +190,7 @@ export class ReportsService {
 
       sheet.addRow({
         matricNo: student.matricNo,
-        surname: student.surname,
-        otherNames: student.otherNames,
+        name: student.name,
         department: student.department ?? '—',
         course: student.course ?? '—',
         level: student.level,
@@ -107,16 +210,19 @@ export class ReportsService {
         sortCode: student.sortCode ?? '—',
         supervisor: student.assignment?.supervisor?.name ?? 'Unassigned',
         orientation:
-          student.score?.orientation !== null
-            ? student.score?.orientation
+          student.score?.orientation !== null &&
+          student.score?.orientation !== undefined
+            ? student.score.orientation
             : '—',
         supervisorScore:
-          student.score?.supervisorScore !== null
-            ? student.score?.supervisorScore
+          student.score?.supervisorScore !== null &&
+          student.score?.supervisorScore !== undefined
+            ? student.score.supervisorScore
             : '—',
         industryScore:
-          student.score?.industryScore !== null
-            ? student.score?.industryScore
+          student.score?.industryScore !== null &&
+          student.score?.industryScore !== undefined
+            ? student.score.industryScore
             : '—',
         total: student.score ? total : '—',
         siewesFinal: student.score ? total / 2 : '—',
@@ -130,27 +236,24 @@ export class ReportsService {
       });
     }
 
-    // Apply borders and alternating row colors to all rows
-    sheet.eachRow((row, rowNumber) => {
-      row.eachCell((cell) => {
-        cell.border = {
-          top: { style: 'thin' },
-          left: { style: 'thin' },
-          bottom: { style: 'thin' },
-          right: { style: 'thin' },
-        };
-        // Add alternating row colors (skip header)
-        if (rowNumber > 1) {
-          row.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: rowNumber % 2 === 0 ? 'FFF9FAFB' : 'FFFFFFFF' },
-          };
-        }
-      });
-      if (rowNumber > 1) {
-        row.alignment = { vertical: 'middle' };
-      }
+    this.applySheetStyling(sheet, {
+      headerBgColor: 'FF1E293B',
+      centerColumnKeys: [
+        'matricNo',
+        'level',
+        'phone',
+        'whatsappNumber',
+        'accountNumber',
+        'sortCode',
+        'state',
+        'siwesDuration',
+        'orientation',
+        'supervisorScore',
+        'industryScore',
+        'total',
+        'siewesFinal',
+        'status',
+      ],
     });
 
     return Buffer.from(await workbook.xlsx.writeBuffer());
@@ -204,28 +307,36 @@ export class ReportsService {
         : ['Matric No', 'Surname', 'Other Names', 'SIWES Score /50'];
 
       sheet.columns = [
-        { width: 18 },
-        { width: 18 },
-        { width: 24 },
-        { width: 18 },
-        ...(includeIncomplete ? [{ width: 16 }] : []),
+        { width: 20 },
+        { width: 22 },
+        { width: 26 },
+        { width: 20 },
+        ...(includeIncomplete ? [{ width: 18 }] : []),
       ];
 
       const titleRow = sheet.addRow([`SIWES ${session.year} - ${department}`]);
-      titleRow.font = { bold: true, size: 14, color: { argb: 'FF111827' } };
+      titleRow.font = {
+        name: 'Segoe UI',
+        bold: true,
+        size: 12,
+        color: { argb: 'FF1E293B' },
+      };
       titleRow.alignment = { horizontal: 'center', vertical: 'middle' };
-      titleRow.height = 30;
+      titleRow.height = 32;
       sheet.mergeCells(1, 1, 1, headers.length);
-
-      const headerRow = sheet.addRow(headers);
-      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-      headerRow.fill = {
+      titleRow.getCell(1).fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: 'FF4B5563' },
+        fgColor: { argb: 'FFF1F5F9' }, // Slate-100 banner
       };
-      headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-      headerRow.height = 24;
+      titleRow.getCell(1).border = {
+        top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+      };
+
+      sheet.addRow(headers);
 
       for (const student of departmentStudents) {
         const total =
@@ -253,25 +364,11 @@ export class ReportsService {
         );
       }
 
-      sheet.eachRow((row, rowNumber) => {
-        row.eachCell((cell) => {
-          cell.border = {
-            top: { style: 'thin' },
-            left: { style: 'thin' },
-            bottom: { style: 'thin' },
-            right: { style: 'thin' },
-          };
-          if (rowNumber > 2) {
-            row.fill = {
-              type: 'pattern',
-              pattern: 'solid',
-              fgColor: { argb: rowNumber % 2 === 0 ? 'FFF9FAFB' : 'FFFFFFFF' },
-            };
-          }
-        });
-        if (rowNumber > 2) {
-          row.alignment = { vertical: 'middle' };
-        }
+      this.applySheetStyling(sheet, {
+        headerRowIndex: 2,
+        freezeRow: 2,
+        headerBgColor: 'FF1E293B',
+        centerColIndices: [1, 4, 5],
       });
     }
 
@@ -296,54 +393,45 @@ export class ReportsService {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet(`SIWES ${session.year} Master List`);
 
+    // Matches the 19 official SIWES template columns + assigned supervisor metadata
     sheet.columns = [
-      { header: 'Email Address', key: 'email', width: 28 },
-      { header: 'Name in Full (Surname in Capital Letter)', key: 'name', width: 30 },
-      { header: 'Surname', key: 'surname', width: 18 },
-      { header: 'Other Names', key: 'otherNames', width: 22 },
-      { header: 'Matric. Number', key: 'matricNo', width: 18 },
-      { header: 'Level', key: 'level', width: 10 },
-      { header: 'Programme of Study', key: 'course', width: 26 },
+      { header: 'Email Address', key: 'email', width: 30 },
+      { header: 'Name in Full (Surname in Capital Letter)', key: 'name', width: 40 },
+      { header: 'Matric. Number', key: 'matricNo', width: 20 },
+      { header: 'Level', key: 'level', width: 12 },
+      { header: 'Programme of Study', key: 'course', width: 28 },
       { header: 'Faculty', key: 'faculty', width: 26 },
-      { header: 'Department', key: 'department', width: 24 },
-      { header: 'WhatsApp Number Only', key: 'whatsappNumber', width: 18 },
-      { header: 'Phone Number', key: 'phone', width: 18 },
+      { header: 'WhatsApp Number Only', key: 'whatsappNumber', width: 24 },
+      { header: 'Phone Number', key: 'phone', width: 20 },
       { header: 'Bank Name', key: 'bankName', width: 22 },
-      { header: 'Account Name', key: 'accountName', width: 26 },
-      { header: 'Account Number', key: 'accountNumber', width: 18 },
+      { header: 'Account Name', key: 'accountName', width: 28 },
+      { header: 'Account Number', key: 'accountNumber', width: 20 },
       { header: 'Sort Code', key: 'sortCode', width: 14 },
-      { header: 'SIWES Placement', key: 'industry', width: 32 },
-      { header: 'Address SIWES placement', key: 'address', width: 34 },
-      { header: 'Area/Local Government/Town/', key: 'lga', width: 22 },
-      { header: 'State', key: 'state', width: 16 },
-      { header: 'Industry-based Supervisor Name', key: 'industrySupervisorName', width: 28 },
-      { header: 'Industry-based Supervisor Phone Number', key: 'industrySupervisorPhone', width: 24 },
-      { header: 'Duration of SIWES Exercise', key: 'siwesDuration', width: 18 },
-      { header: 'Assigned Institutional Supervisor', key: 'supervisor', width: 28 },
-      { header: 'Assignment Status', key: 'status', width: 16 },
+      { header: 'SIWES Placement', key: 'industry', width: 34 },
+      { header: 'Address SIWES placement', key: 'address', width: 36 },
+      { header: 'Area/Local Government/Town/', key: 'lga', width: 28 },
+      { header: 'State', key: 'state', width: 18 },
+      { header: 'Industry-based Supervisor Name', key: 'industrySupervisorName', width: 32 },
+      { header: 'Industry-based Supervisor Phone Number', key: 'industrySupervisorPhone', width: 32 },
+      { header: 'Duration of SIWES Exercise', key: 'siwesDuration', width: 24 },
+      { header: 'Assigned Institutional Supervisor', key: 'supervisor', width: 32 },
+      { header: 'Assignment Status', key: 'status', width: 18 },
     ];
 
-    const headerRow = sheet.getRow(1);
-    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    headerRow.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF1E3A8A' }, // Deep blue
-    };
-    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-    headerRow.height = 26;
-
     for (const student of students) {
+      // Ensure surname is capitalized as required by template
+      const formattedName =
+        student.surname && student.otherNames
+          ? `${student.surname.toUpperCase()} ${student.otherNames}`
+          : student.name;
+
       sheet.addRow({
         email: student.email ?? '—',
-        name: student.name,
-        surname: student.surname,
-        otherNames: student.otherNames,
+        name: formattedName,
         matricNo: student.matricNo,
         level: student.level,
-        course: student.course ?? '—',
+        course: student.course ?? student.department ?? '—',
         faculty: student.faculty ?? '—',
-        department: student.department ?? '—',
         whatsappNumber: student.whatsappNumber ?? '—',
         phone: student.phone ?? '—',
         bankName: student.bankName ?? '—',
@@ -362,25 +450,19 @@ export class ReportsService {
       });
     }
 
-    sheet.eachRow((row, rowNumber) => {
-      row.eachCell((cell) => {
-        cell.border = {
-          top: { style: 'thin' },
-          left: { style: 'thin' },
-          bottom: { style: 'thin' },
-          right: { style: 'thin' },
-        };
-        if (rowNumber > 1) {
-          row.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: rowNumber % 2 === 0 ? 'FFF9FAFB' : 'FFFFFFFF' },
-          };
-        }
-      });
-      if (rowNumber > 1) {
-        row.alignment = { vertical: 'middle' };
-      }
+    this.applySheetStyling(sheet, {
+      headerBgColor: 'FF1E293B',
+      centerColumnKeys: [
+        'matricNo',
+        'level',
+        'whatsappNumber',
+        'phone',
+        'accountNumber',
+        'sortCode',
+        'state',
+        'siwesDuration',
+        'status',
+      ],
     });
 
     return Buffer.from(await workbook.xlsx.writeBuffer());
@@ -404,36 +486,26 @@ export class ReportsService {
     const workbook = new ExcelJS.Workbook();
 
     // Sheet 1: Individual Scores
-    const scoresSheet = workbook.addWorksheet(`Supervisor Uploaded Scores`);
+    const scoresSheet = workbook.addWorksheet(`Supervisor Scores`);
 
     scoresSheet.columns = [
-      { header: 'Matric No', key: 'matricNo', width: 18 },
-      { header: 'Student Name', key: 'name', width: 28 },
-      { header: 'Faculty', key: 'faculty', width: 24 },
-      { header: 'Course / Department', key: 'course', width: 24 },
-      { header: 'Level', key: 'level', width: 10 },
-      { header: 'Placement Establishment', key: 'industry', width: 28 },
+      { header: 'Matric No', key: 'matricNo', width: 20 },
+      { header: 'Student Name', key: 'name', width: 32 },
+      { header: 'Faculty', key: 'faculty', width: 26 },
+      { header: 'Course / Department', key: 'course', width: 28 },
+      { header: 'Level', key: 'level', width: 12 },
+      { header: 'Placement Establishment', key: 'industry', width: 32 },
       { header: 'State', key: 'state', width: 16 },
-      { header: 'Assigned Supervisor', key: 'supervisor', width: 26 },
-      { header: 'Supervisor Email', key: 'supervisorEmail', width: 26 },
-      { header: 'Orientation /10', key: 'orientation', width: 16 },
-      { header: 'Supervisor Score /40', key: 'supervisorScore', width: 20 },
-      { header: 'Industry Score /50', key: 'industryScore', width: 18 },
-      { header: 'Total Score /100', key: 'total', width: 16 },
-      { header: 'SIWES Final /50', key: 'siewesFinal', width: 16 },
-      { header: 'Status', key: 'status', width: 16 },
-      { header: 'Submitted At', key: 'submittedAt', width: 22 },
+      { header: 'Assigned Supervisor', key: 'supervisor', width: 30 },
+      { header: 'Supervisor Email', key: 'supervisorEmail', width: 30 },
+      { header: 'Orientation /10', key: 'orientation', width: 18 },
+      { header: 'Supervisor Score /40', key: 'supervisorScore', width: 22 },
+      { header: 'Industry Score /50', key: 'industryScore', width: 20 },
+      { header: 'Total Score /100', key: 'total', width: 18 },
+      { header: 'SIWES Final /50', key: 'siewesFinal', width: 18 },
+      { header: 'Status', key: 'status', width: 18 },
+      { header: 'Submitted At', key: 'submittedAt', width: 20 },
     ];
-
-    const scoreHeaderRow = scoresSheet.getRow(1);
-    scoreHeaderRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    scoreHeaderRow.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF15803D' }, // Rich dark green
-    };
-    scoreHeaderRow.alignment = { vertical: 'middle', horizontal: 'center' };
-    scoreHeaderRow.height = 26;
 
     // Track supervisor statistics
     const supervisorStats: Record<
@@ -485,7 +557,8 @@ export class ReportsService {
             ? score.orientation
             : '—',
         supervisorScore:
-          score?.supervisorScore !== null && score?.supervisorScore !== undefined
+          score?.supervisorScore !== null &&
+          score?.supervisorScore !== undefined
             ? score.supervisorScore
             : '—',
         industryScore:
@@ -513,47 +586,32 @@ export class ReportsService {
       });
     }
 
-    scoresSheet.eachRow((row, rowNumber) => {
-      row.eachCell((cell) => {
-        cell.border = {
-          top: { style: 'thin' },
-          left: { style: 'thin' },
-          bottom: { style: 'thin' },
-          right: { style: 'thin' },
-        };
-        if (rowNumber > 1) {
-          row.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: rowNumber % 2 === 0 ? 'FFF9FAFB' : 'FFFFFFFF' },
-          };
-        }
-      });
-      if (rowNumber > 1) {
-        row.alignment = { vertical: 'middle' };
-      }
+    this.applySheetStyling(scoresSheet, {
+      headerBgColor: 'FF1E293B',
+      centerColumnKeys: [
+        'matricNo',
+        'level',
+        'state',
+        'orientation',
+        'supervisorScore',
+        'industryScore',
+        'total',
+        'siewesFinal',
+        'status',
+        'submittedAt',
+      ],
     });
 
     // Sheet 2: Supervisor Progress Summary
     const summarySheet = workbook.addWorksheet(`Supervisor Summary`);
     summarySheet.columns = [
-      { header: 'Supervisor Name', key: 'name', width: 30 },
-      { header: 'Supervisor Email', key: 'email', width: 30 },
-      { header: 'Assigned Students', key: 'assigned', width: 18 },
-      { header: 'Scored Students', key: 'scored', width: 18 },
-      { header: 'Pending', key: 'pending', width: 14 },
-      { header: 'Completion (%)', key: 'completion', width: 16 },
+      { header: 'Supervisor Name', key: 'name', width: 32 },
+      { header: 'Supervisor Email', key: 'email', width: 32 },
+      { header: 'Assigned Students', key: 'assigned', width: 20 },
+      { header: 'Scored Students', key: 'scored', width: 20 },
+      { header: 'Pending', key: 'pending', width: 16 },
+      { header: 'Completion Rate', key: 'completion', width: 18 },
     ];
-
-    const summaryHeaderRow = summarySheet.getRow(1);
-    summaryHeaderRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    summaryHeaderRow.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF374151' },
-    };
-    summaryHeaderRow.alignment = { vertical: 'middle', horizontal: 'center' };
-    summaryHeaderRow.height = 26;
 
     for (const stat of Object.values(supervisorStats)) {
       const pending = stat.assigned - stat.scored;
@@ -571,25 +629,9 @@ export class ReportsService {
       });
     }
 
-    summarySheet.eachRow((row, rowNumber) => {
-      row.eachCell((cell) => {
-        cell.border = {
-          top: { style: 'thin' },
-          left: { style: 'thin' },
-          bottom: { style: 'thin' },
-          right: { style: 'thin' },
-        };
-        if (rowNumber > 1) {
-          row.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: rowNumber % 2 === 0 ? 'FFF9FAFB' : 'FFFFFFFF' },
-          };
-        }
-      });
-      if (rowNumber > 1) {
-        row.alignment = { vertical: 'middle' };
-      }
+    this.applySheetStyling(summarySheet, {
+      headerBgColor: 'FF1E293B',
+      centerColumnKeys: ['assigned', 'scored', 'pending', 'completion'],
     });
 
     return Buffer.from(await workbook.xlsx.writeBuffer());
