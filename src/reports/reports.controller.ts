@@ -11,7 +11,44 @@ import { ReportsService } from './reports.service';
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
-  @Roles(Role.CORPER)
+  @Roles(Role.DIRECTOR, Role.CORPER)
+  @Get('export/master-list')
+  async exportMasterList(
+    @Res() res: Response,
+    @Query('sessionId') sessionId?: string,
+  ) {
+    const buffer = await this.reportsService.generateMasterList(sessionId);
+
+    res.set({
+      'Content-Type':
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="siwes-master-list-${Date.now()}.xlsx"`,
+      'Content-Length': buffer.length,
+    });
+
+    res.end(buffer);
+  }
+
+  @Roles(Role.DIRECTOR, Role.CORPER)
+  @Get('export/supervisor-scores')
+  async exportSupervisorScores(
+    @Res() res: Response,
+    @Query('sessionId') sessionId?: string,
+  ) {
+    const buffer =
+      await this.reportsService.generateSupervisorScoresReport(sessionId);
+
+    res.set({
+      'Content-Type':
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="siwes-supervisor-scores-${Date.now()}.xlsx"`,
+      'Content-Length': buffer.length,
+    });
+
+    res.end(buffer);
+  }
+
+  @Roles(Role.DIRECTOR, Role.CORPER)
   @Get('export/internal')
   async exportInternal(
     @Res() res: Response,
@@ -29,7 +66,7 @@ export class ReportsController {
     res.end(buffer);
   }
 
-  @Roles(Role.CORPER)
+  @Roles(Role.DIRECTOR, Role.CORPER)
   @Get('export/external')
   async exportExternal(
     @Res() res: Response,

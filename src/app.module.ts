@@ -27,8 +27,13 @@ import { Score } from './scores/score.entity';
         const nodeEnv = config.get<string>('NODE_ENV');
 
         // Route all DB connections over WebSocket (port 443) instead of raw TCP (port 5432)
-        // Fixes ECONNRESET/ETIMEDOUT errors on networks that block port 5432
-        neonConfig.webSocketConstructor = ws;
+        // Fixes ECONNRESET/ETIMEDOUT errors on networks that block port 5432, forcing IPv4
+        class CustomWebSocket extends ws {
+          constructor(url: any, protocols: any, options: any) {
+            super(url, protocols, { ...options, family: 4 });
+          }
+        }
+        neonConfig.webSocketConstructor = CustomWebSocket as any;
 
         return {
           type: 'postgres' as const,

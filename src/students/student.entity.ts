@@ -75,6 +75,30 @@ export class Student {
   @Column({ type: 'text', nullable: true })
   address: string | null;
 
+  @Column({ type: 'varchar', nullable: true })
+  whatsappNumber: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  bankName: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  accountName: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  accountNumber: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  sortCode: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  industrySupervisorName: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  industrySupervisorPhone: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  siwesDuration: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

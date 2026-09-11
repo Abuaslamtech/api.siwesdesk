@@ -5,13 +5,17 @@ export class StudentUploadRowDto {
   @IsNotEmpty()
   matricNo: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  surname: string;
+  surname?: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  otherNames: string;
+  otherNames?: string;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
 
   @IsOptional()
   @IsString()
@@ -52,6 +56,38 @@ export class StudentUploadRowDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @IsOptional()
+  @IsString()
+  whatsappNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  bankName?: string;
+
+  @IsOptional()
+  @IsString()
+  accountName?: string;
+
+  @IsOptional()
+  @IsString()
+  accountNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  sortCode?: string;
+
+  @IsOptional()
+  @IsString()
+  industrySupervisorName?: string;
+
+  @IsOptional()
+  @IsString()
+  industrySupervisorPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  siwesDuration?: string;
 
   @IsOptional()
   @IsString()

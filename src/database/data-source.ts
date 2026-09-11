@@ -8,9 +8,13 @@ import ws from 'ws';
 config();
 
 // Use WebSocket (port 443/WSS) instead of raw TCP (port 5432).
-// This permanently fixes ECONNRESET/ETIMEDOUT errors caused by ISPs
-// blocking the PostgreSQL protocol handshake on port 5432.
-neonConfig.webSocketConstructor = ws;
+// Force IPv4 (family: 4) to avoid timeouts on networks where IPv6 is unreachable.
+class CustomWebSocket extends ws {
+  constructor(url: any, protocols: any, options: any) {
+    super(url, protocols, { ...options, family: 4 });
+  }
+}
+neonConfig.webSocketConstructor = CustomWebSocket as any;
 
 export default new DataSource({
   ...buildTypeOrmOptions(

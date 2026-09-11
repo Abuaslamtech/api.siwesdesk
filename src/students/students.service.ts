@@ -51,12 +51,34 @@ export class StudentsService {
         }
 
         seen.add(matricNo);
+        let surname = (row.surname || '').trim();
+        let otherNames = (row.otherNames || '').trim();
+        const rawName = (row.name || '').trim();
+
+        if ((!surname || !otherNames) && rawName) {
+          if (rawName.includes(',')) {
+            const [s, ...rest] = rawName.split(',');
+            surname = s.trim();
+            otherNames = rest.join(' ').trim();
+          } else {
+            const parts = rawName.split(/\s+/).filter(Boolean);
+            if (parts.length > 0) {
+              surname = surname || parts[0];
+              otherNames = otherNames || parts.slice(1).join(' ');
+            }
+          }
+        }
+
+        surname = surname || rawName || 'UNKNOWN';
+        otherNames = otherNames || '';
+        const name = rawName || `${surname} ${otherNames}`.trim();
+
         inserts.push({
           sessionId: session.id,
           matricNo,
-          surname: row.surname.trim(),
-          otherNames: row.otherNames.trim(),
-          name: `${row.surname.trim()} ${row.otherNames.trim()}`.trim(),
+          surname,
+          otherNames,
+          name,
           department: this.optional(row.department),
           faculty: this.optional(row.faculty),
           course: this.optional(row.course),
@@ -64,9 +86,17 @@ export class StudentsService {
           state: row.state.trim(),
           lga: this.optional(row.lga),
           industry: this.optional(row.industry),
-          location: this.optional(row.location),
+          location: this.optional(row.location) ?? this.optional(row.lga),
           email: this.optional(row.email)?.toLowerCase() ?? null,
           phone: this.optional(row.phone),
+          whatsappNumber: this.optional(row.whatsappNumber),
+          bankName: this.optional(row.bankName),
+          accountName: this.optional(row.accountName),
+          accountNumber: this.optional(row.accountNumber),
+          sortCode: this.optional(row.sortCode),
+          industrySupervisorName: this.optional(row.industrySupervisorName),
+          industrySupervisorPhone: this.optional(row.industrySupervisorPhone),
+          siwesDuration: this.optional(row.siwesDuration),
           gender: this.optional(row.gender),
           address: this.optional(row.address),
         });
