@@ -49,11 +49,12 @@ export class ReportsService {
       },
     ];
 
-    // 2. Enable AutoFilter on header row
+    // 2. Enable AutoFilter spanning header to the last data row
+    const lastRow = Math.max(sheet.rowCount, headerRowIndex);
     if (totalCols > 0) {
       sheet.autoFilter = {
         from: { row: headerRowIndex, column: 1 },
-        to: { row: headerRowIndex, column: totalCols },
+        to: { row: lastRow, column: totalCols },
       };
     }
 
