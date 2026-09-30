@@ -12,6 +12,7 @@ import { Score } from './score.entity';
 import { SaveDraftScoreDto } from './dto/save-draft-score.dto';
 import { SubmitScoreDto } from './dto/submit-score.dto';
 import { BulkSubmitScoreDto } from './dto/bulk-submit-score.dto';
+import { decorateScoreWithComputed } from './score.utils';
 
 @Injectable()
 export class ScoresService {
@@ -247,20 +248,6 @@ export class ScoresService {
   }
 
   private withComputed(score: Score) {
-    const total =
-      (score.orientation ?? 0) +
-      (score.supervisorScore ?? 0) +
-      (score.industryScore ?? 0);
-
-    return {
-      ...score,
-      total,
-      siewesFinal: total / 2,
-      isComplete:
-        !score.isDraft &&
-        score.orientation !== null &&
-        score.supervisorScore !== null &&
-        score.industryScore !== null,
-    };
+    return decorateScoreWithComputed(score)!;
   }
 }

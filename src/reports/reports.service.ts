@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as ExcelJS from 'exceljs';
 import { Repository } from 'typeorm';
+import { computeScore, isScoreComplete } from '../scores/score.utils';
 import { SessionsService } from '../sessions/sessions.service';
 import { Student } from '../students/student.entity';
 
@@ -171,23 +172,17 @@ export class ReportsService {
       { header: 'Institutional Supervisor', key: 'supervisor', width: 28 },
       { header: 'Orientation /10', key: 'orientation', width: 18 },
       { header: 'Supervisor /40', key: 'supervisorScore', width: 18 },
-      { header: 'Industry /50', key: 'industryScore', width: 16 },
-      { header: 'Total /100', key: 'total', width: 14 },
+      { header: 'Industry /60', key: 'industryScore', width: 16 },
+      { header: 'Raw Total /110', key: 'rawTotal', width: 16 },
+      { header: 'Converted /100', key: 'total', width: 16 },
       { header: 'SIWES Score /50', key: 'siewesFinal', width: 18 },
       { header: 'Status', key: 'status', width: 16 },
     ];
 
     for (const student of students) {
-      const total =
-        (student.score?.orientation ?? 0) +
-        (student.score?.supervisorScore ?? 0) +
-        (student.score?.industryScore ?? 0);
-      const isComplete =
-        !!student.score &&
-        !student.score.isDraft &&
-        student.score.orientation !== null &&
-        student.score.supervisorScore !== null &&
-        student.score.industryScore !== null;
+      const { rawTotal, total, siewesFinal, isComplete } = computeScore(
+        student.score,
+      );
 
       sheet.addRow({
         matricNo: student.matricNo,
@@ -225,8 +220,9 @@ export class ReportsService {
           student.score?.industryScore !== undefined
             ? student.score.industryScore
             : '—',
+        rawTotal: student.score ? rawTotal : '—',
         total: student.score ? total : '—',
-        siewesFinal: student.score ? total / 2 : '—',
+        siewesFinal: student.score ? siewesFinal : '—',
         status: !student.assignment
           ? 'Unassigned'
           : isComplete
@@ -251,6 +247,7 @@ export class ReportsService {
         'orientation',
         'supervisorScore',
         'industryScore',
+        'rawTotal',
         'total',
         'siewesFinal',
         'status',
@@ -278,13 +275,7 @@ export class ReportsService {
         return true;
       }
 
-      return (
-        !!student.score &&
-        !student.score.isDraft &&
-        student.score.orientation !== null &&
-        student.score.supervisorScore !== null &&
-        student.score.industryScore !== null
-      );
+      return isScoreComplete(student.score);
     });
 
     const grouped = filteredStudents.reduce<Record<string, Student[]>>(
@@ -340,22 +331,13 @@ export class ReportsService {
       sheet.addRow(headers);
 
       for (const student of departmentStudents) {
-        const total =
-          (student.score?.orientation ?? 0) +
-          (student.score?.supervisorScore ?? 0) +
-          (student.score?.industryScore ?? 0);
-        const isComplete =
-          !!student.score &&
-          !student.score.isDraft &&
-          student.score.orientation !== null &&
-          student.score.supervisorScore !== null &&
-          student.score.industryScore !== null;
+        const { siewesFinal, isComplete } = computeScore(student.score);
 
         const baseRow = [
           student.matricNo,
           student.surname,
           student.otherNames,
-          isComplete ? total / 2 : '—',
+          isComplete ? siewesFinal : '—',
         ];
 
         sheet.addRow(
@@ -501,8 +483,9 @@ export class ReportsService {
       { header: 'Supervisor Email', key: 'supervisorEmail', width: 30 },
       { header: 'Orientation /10', key: 'orientation', width: 18 },
       { header: 'Supervisor Score /40', key: 'supervisorScore', width: 22 },
-      { header: 'Industry Score /50', key: 'industryScore', width: 20 },
-      { header: 'Total Score /100', key: 'total', width: 18 },
+      { header: 'Industry Score /60', key: 'industryScore', width: 20 },
+      { header: 'Raw Total /110', key: 'rawTotal', width: 18 },
+      { header: 'Converted Total /100', key: 'total', width: 20 },
       { header: 'SIWES Final /50', key: 'siewesFinal', width: 18 },
       { header: 'Status', key: 'status', width: 18 },
       { header: 'Submitted At', key: 'submittedAt', width: 20 },
@@ -516,16 +499,7 @@ export class ReportsService {
 
     for (const student of students) {
       const score = student.score;
-      const total =
-        (score?.orientation ?? 0) +
-        (score?.supervisorScore ?? 0) +
-        (score?.industryScore ?? 0);
-      const isComplete =
-        !!score &&
-        !score.isDraft &&
-        score.orientation !== null &&
-        score.supervisorScore !== null &&
-        score.industryScore !== null;
+      const { rawTotal, total, siewesFinal, isComplete } = computeScore(score);
 
       const supervisor = student.assignment?.supervisor;
       if (supervisor) {
@@ -566,8 +540,9 @@ export class ReportsService {
           score?.industryScore !== null && score?.industryScore !== undefined
             ? score.industryScore
             : '—',
+        rawTotal: score ? rawTotal : '—',
         total: score ? total : '—',
-        siewesFinal: score ? total / 2 : '—',
+        siewesFinal: score ? siewesFinal : '—',
         status: !student.assignment
           ? 'Unassigned'
           : isComplete
@@ -596,6 +571,7 @@ export class ReportsService {
         'orientation',
         'supervisorScore',
         'industryScore',
+        'rawTotal',
         'total',
         'siewesFinal',
         'status',

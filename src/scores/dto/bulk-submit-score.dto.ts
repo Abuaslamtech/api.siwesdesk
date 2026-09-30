@@ -20,7 +20,7 @@ export class BulkScoreEntryDto {
 
   @IsInt()
   @Min(0)
-  @Max(50)
+  @Max(60)
   industryScore: number;
 }
 

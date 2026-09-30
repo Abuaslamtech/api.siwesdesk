@@ -23,13 +23,13 @@ export class SessionsController {
     return this.sessionsService.findAll();
   }
 
-  @Roles(Role.DIRECTOR, Role.CORPER)
+  @Roles(Role.DIRECTOR, Role.CORPER, Role.SUPERVISOR)
   @Get('active')
   findActive() {
     return this.sessionsService.findActive();
   }
 
-  @Roles(Role.DIRECTOR, Role.CORPER)
+  @Roles(Role.DIRECTOR, Role.CORPER, Role.SUPERVISOR)
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.sessionsService.findById(id);

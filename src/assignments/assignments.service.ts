@@ -10,6 +10,7 @@ import { SessionsService } from '../sessions/sessions.service';
 import { UsersService } from '../users/users.service';
 import { Score } from '../scores/score.entity';
 import { Student } from '../students/student.entity';
+import { decorateScoreWithComputed } from '../scores/score.utils';
 import { Assignment } from './assignment.entity';
 import { BulkAssignDto } from './dto/bulk-assign.dto';
 
@@ -118,21 +119,7 @@ export class AssignmentsService {
     });
   }
 
-  private decorateScore(score: Score) {
-    const total =
-      (score.orientation ?? 0) +
-      (score.supervisorScore ?? 0) +
-      (score.industryScore ?? 0);
-
-    return {
-      ...score,
-      total,
-      siewesFinal: total / 2,
-      isComplete:
-        !score.isDraft &&
-        score.orientation !== null &&
-        score.supervisorScore !== null &&
-        score.industryScore !== null,
-    };
+  private decorateScore(score: Score | null | undefined) {
+    return decorateScoreWithComputed(score);
   }
 }

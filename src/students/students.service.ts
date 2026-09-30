@@ -9,6 +9,11 @@ import { SessionsService } from '../sessions/sessions.service';
 import { Score } from '../scores/score.entity';
 import { Student } from './student.entity';
 import { UploadStudentsDto } from './dto/upload-students.dto';
+import {
+  computeScore,
+  decorateScoreWithComputed,
+  isScoreComplete,
+} from '../scores/score.utils';
 
 type StudentFilters = {
   sessionId?: string;
@@ -202,14 +207,7 @@ export class StudentsService {
     }
 
     const score = student.score;
-    const isComplete =
-      score &&
-      !score.isDraft &&
-      score.orientation !== null &&
-      score.supervisorScore !== null &&
-      score.industryScore !== null;
-
-    if (!isComplete) {
+    if (!isScoreComplete(score)) {
       // Student exists but results are not yet published
       return {
         found: true,
@@ -225,11 +223,7 @@ export class StudentsService {
       };
     }
 
-    const orientation = score.orientation ?? 0;
-    const supervisorScore = score.supervisorScore ?? 0;
-    const industryScore = score.industryScore ?? 0;
-    const total = orientation + supervisorScore + industryScore;
-    const siewesFinal = total / 2;
+    const { rawTotal, total, siewesFinal } = computeScore(score);
 
     return {
       found: true,
@@ -246,12 +240,13 @@ export class StudentsService {
         state: student.state,
       },
       result: {
-        orientation,
-        supervisorScore,
-        industryScore,
+        orientation: score!.orientation ?? 0,
+        supervisorScore: score!.supervisorScore ?? 0,
+        industryScore: score!.industryScore ?? 0,
+        rawTotal,
         total,
         siewesFinal,
-        submittedAt: score.submittedAt,
+        submittedAt: score!.submittedAt,
       },
     };
   }
@@ -304,22 +299,8 @@ export class StudentsService {
     };
   }
 
-  private decorateScore(score: Score) {
-    const orientation = score.orientation ?? 0;
-    const supervisorScore = score.supervisorScore ?? 0;
-    const industryScore = score.industryScore ?? 0;
-    const total = orientation + supervisorScore + industryScore;
-
-    return {
-      ...score,
-      total,
-      siewesFinal: total / 2,
-      isComplete:
-        !score.isDraft &&
-        score.orientation !== null &&
-        score.supervisorScore !== null &&
-        score.industryScore !== null,
-    };
+  private decorateScore(score: Score | null | undefined) {
+    return decorateScoreWithComputed(score);
   }
 
   private computeStatus(
